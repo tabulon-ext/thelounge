@@ -19,14 +19,13 @@
 			<label for="signin-username">Username</label>
 			<input
 				id="signin-username"
-				ref="username"
+				v-model="username"
 				class="input"
 				type="text"
 				name="username"
 				autocapitalize="none"
 				autocorrect="off"
 				autocomplete="username"
-				:value="getStoredUser()"
 				required
 				autofocus
 			/>
@@ -36,9 +35,8 @@
 				<RevealPassword v-slot:default="slotProps">
 					<input
 						id="signin-password"
-						ref="password"
+						v-model="password"
 						:type="slotProps.isVisible ? 'text' : 'password'"
-						name="password"
 						class="input"
 						autocapitalize="none"
 						autocorrect="off"
@@ -55,51 +53,64 @@
 	</div>
 </template>
 
-<script>
+<script lang="ts">
 import storage from "../../js/localStorage";
 import socket from "../../js/socket";
 import RevealPassword from "../RevealPassword.vue";
+import {defineComponent, onBeforeUnmount, onMounted, ref} from "vue";
 
-export default {
+export default defineComponent({
 	name: "SignIn",
 	components: {
 		RevealPassword,
 	},
-	data() {
-		return {
-			inFlight: false,
-			errorShown: false,
+	setup() {
+		const inFlight = ref(false);
+		const errorShown = ref(false);
+
+		const username = ref(storage.get("user") || "");
+		const password = ref("");
+
+		const onAuthFailed = () => {
+			inFlight.value = false;
+			errorShown.value = true;
 		};
-	},
-	mounted() {
-		socket.on("auth:failed", this.onAuthFailed);
-	},
-	beforeDestroy() {
-		socket.off("auth:failed", this.onAuthFailed);
-	},
-	methods: {
-		onAuthFailed() {
-			this.inFlight = false;
-			this.errorShown = true;
-		},
-		onSubmit(event) {
+
+		const onSubmit = (event: Event) => {
 			event.preventDefault();
 
-			this.inFlight = true;
-			this.errorShown = false;
+			if (!username.value || !password.value) {
+				return;
+			}
+
+			inFlight.value = true;
+			errorShown.value = false;
 
 			const values = {
-				user: this.$refs.username.value,
-				password: this.$refs.password.value,
+				user: username.value,
+				password: password.value,
 			};
 
 			storage.set("user", values.user);
 
 			socket.emit("auth:perform", values);
-		},
-		getStoredUser() {
-			return storage.get("user");
-		},
+		};
+
+		onMounted(() => {
+			socket.on("auth:failed", onAuthFailed);
+		});
+
+		onBeforeUnmount(() => {
+			socket.off("auth:failed", onAuthFailed);
+		});
+
+		return {
+			inFlight,
+			errorShown,
+			username,
+			password,
+			onSubmit,
+		};
 	},
-};
+});
 </script>

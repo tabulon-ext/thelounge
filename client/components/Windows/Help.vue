@@ -9,7 +9,7 @@
 			<h2 class="help-version-title">
 				<span>About The Lounge</span>
 				<small>
-					v{{ $store.state.serverConfiguration.version }} (<router-link
+					v{{ store.state.serverConfiguration?.version }} (<router-link
 						id="view-changelog"
 						to="/changelog"
 						>release notes</router-link
@@ -20,13 +20,13 @@
 			<div class="about">
 				<VersionChecker />
 
-				<template v-if="$store.state.serverConfiguration.gitCommit">
+				<template v-if="store.state.serverConfiguration?.gitCommit">
 					<p>
 						The Lounge is running from source (<a
-							:href="`https://github.com/thelounge/thelounge/tree/${$store.state.serverConfiguration.gitCommit}`"
+							:href="`https://github.com/thelounge/thelounge/tree/${store.state.serverConfiguration?.gitCommit}`"
 							target="_blank"
 							rel="noopener"
-							>commit <code>{{ $store.state.serverConfiguration.gitCommit }}</code></a
+							>commit <code>{{ store.state.serverConfiguration?.gitCommit }}</code></a
 						>).
 					</p>
 
@@ -34,11 +34,11 @@
 						<li>
 							Compare
 							<a
-								:href="`https://github.com/thelounge/thelounge/compare/${$store.state.serverConfiguration.gitCommit}...master`"
+								:href="`https://github.com/thelounge/thelounge/compare/${store.state.serverConfiguration?.gitCommit}...master`"
 								target="_blank"
 								rel="noopener"
 								>between
-								<code>{{ $store.state.serverConfiguration.gitCommit }}</code> and
+								<code>{{ store.state.serverConfiguration?.gitCommit }}</code> and
 								<code>master</code></a
 							>
 							to see what you are missing
@@ -46,12 +46,12 @@
 						<li>
 							Compare
 							<a
-								:href="`https://github.com/thelounge/thelounge/compare/${$store.state.serverConfiguration.version}...${$store.state.serverConfiguration.gitCommit}`"
+								:href="`https://github.com/thelounge/thelounge/compare/${store.state.serverConfiguration?.version}...${store.state.serverConfiguration?.gitCommit}`"
 								target="_blank"
 								rel="noopener"
 								>between
-								<code>{{ $store.state.serverConfiguration.version }}</code> and
-								<code>{{ $store.state.serverConfiguration.gitCommit }}</code></a
+								<code>{{ store.state.serverConfiguration?.version }}</code> and
+								<code>{{ store.state.serverConfiguration?.gitCommit }}</code></a
 							>
 							to see your local changes
 						</li>
@@ -176,6 +176,26 @@
 				</div>
 				<div class="description">
 					<p>Switch to the previous window in the channel list.</p>
+				</div>
+			</div>
+
+			<div class="help-item">
+				<div class="subject">
+					<span v-if="!isApple"><kbd>Alt</kbd> <kbd>Ctrl</kbd> <kbd>↓</kbd></span>
+					<span v-else><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>↓</kbd></span>
+				</div>
+				<div class="description">
+					<p>Switch to the next window with unread messages in the channel list.</p>
+				</div>
+			</div>
+
+			<div class="help-item">
+				<div class="subject">
+					<span v-if="!isApple"><kbd>Alt</kbd> <kbd>Ctrl</kbd> <kbd>↑</kbd></span>
+					<span v-else><kbd>⌥</kbd> <kbd>⌘</kbd> <kbd>↑</kbd></span>
+				</div>
+				<div class="description">
+					<p>Switch to the previous window with unread messages in the channel list.</p>
 				</div>
 			</div>
 
@@ -574,10 +594,13 @@
 
 			<div class="help-item">
 				<div class="subject">
-					<code>/join channel</code>
+					<code>/join channel [password]</code>
 				</div>
 				<div class="description">
-					<p>Join a channel.</p>
+					<p>
+						Join a channel. Password is only needed in protected channels and can
+						usually be omitted.
+					</p>
 				</div>
 			</div>
 
@@ -642,6 +665,20 @@
 				</div>
 				<div class="description">
 					<p>Send a message to the specified channel.</p>
+				</div>
+			</div>
+
+			<div class="help-item">
+				<div class="subject">
+					<code>/mute [...channel]</code>
+				</div>
+				<div class="description">
+					<p>
+						Prevent messages from generating any feedback for a channel. This turns off
+						the highlight indicator, hides mentions and inhibits push notifications.
+						Muting a network lobby mutes the entire network. Not specifying any channel
+						target mutes the current channel. Revert with <code>/unmute</code>.
+					</p>
 				</div>
 			</div>
 
@@ -735,7 +772,7 @@
 				</div>
 			</div>
 
-			<div v-if="$store.state.settings.searchEnabled" class="help-item">
+			<div v-if="store.state.settings.searchEnabled" class="help-item">
 				<div class="subject">
 					<code>/search query</code>
 				</div>
@@ -782,6 +819,18 @@
 
 			<div class="help-item">
 				<div class="subject">
+					<code>/unmute [...channel]</code>
+				</div>
+				<div class="description">
+					<p>
+						Un-mutes the given channel(s) or the current channel if no channel is
+						provided. See <code>/mute</code> for more information.
+					</p>
+				</div>
+			</div>
+
+			<div class="help-item">
+				<div class="subject">
 					<code>/voice nick [...nick]</code>
 				</div>
 				<div class="description">
@@ -803,21 +852,28 @@
 	</div>
 </template>
 
-<script>
+<script lang="ts">
+import {defineComponent, ref} from "vue";
+import {useStore} from "../../js/store";
 import SidebarToggle from "../SidebarToggle.vue";
 import VersionChecker from "../VersionChecker.vue";
 
-export default {
+export default defineComponent({
 	name: "Help",
 	components: {
 		SidebarToggle,
 		VersionChecker,
 	},
-	data() {
+	setup() {
+		const store = useStore();
+		const isApple = navigator.platform.match(/(Mac|iPhone|iPod|iPad)/i) || false;
+		const isTouch = navigator.maxTouchPoints > 0;
+
 		return {
-			isApple: navigator.platform.match(/(Mac|iPhone|iPod|iPad)/i) || false,
-			isTouch: navigator.maxTouchPoints > 0,
+			isApple,
+			isTouch,
+			store,
 		};
 	},
-};
+});
 </script>

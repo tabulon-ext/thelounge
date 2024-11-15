@@ -160,6 +160,20 @@ module.exports = {
 	// This value is set to `50` kilobytes by default.
 	prefetchMaxSearchSize: 50,
 
+	// ### `prefetchTimeout`
+	//
+	// When `prefetch` is enabled, this value sets the number of milliseconds
+	// before The Lounge gives up attempting to fetch a link. This can be useful
+	// if you've increased the `prefetchMaxImageSize`.
+	//
+	// Take caution, however, that an inordinately large value may lead to
+	// performance issues or even a denial of service, since The Lounge will not
+	// be able to clean up outgoing connections as quickly. Usually the default
+	// value is appropriate, so only change it if necessary.
+	//
+	// This value is set to `5000` milliseconds by default.
+	prefetchTimeout: 5000,
+
 	// ### `fileUpload`
 	//
 	// Allow uploading files to the server hosting The Lounge.
@@ -176,7 +190,7 @@ module.exports = {
 	//   this limit will be prompted with an error message in their browser. A value of
 	//   `-1` disables the file size limit and allows files of any size. **Use at
 	//   your own risk.** This value is set to `10240` kilobytes by default.
-	// - `baseUrl`: If you want change the URL where uploaded files are accessed,
+	// - `baseUrl`: If you want to change the URL where uploaded files are accessed,
 	//   you can set this option to `"https://example.com/folder/"` and the final URL
 	//   would look like `"https://example.com/folder/aabbccddeeff1234/name.png"`.
 	//   If you use this option, you must have a reverse proxy configured,
@@ -227,7 +241,7 @@ module.exports = {
 	// - `nick`: Nick name. Percent signs (`%`) will be replaced by random
 	//   numbers from 0 to 9. For example, `Guest%%%` may become `Guest123`.
 	// - `username`: User name.
-	// - `realname`: Real name.
+	// - `realname`: Real name displayed by some clients. Defaults to the nick if set to ""
 	// - `leaveMessage`: Network specific leave message (overrides global leaveMessage)
 	// - `join`: Comma-separated list of channels to auto-join once connected.
 	//
@@ -257,7 +271,7 @@ module.exports = {
 		rejectUnauthorized: true,
 		nick: "thelounge%%",
 		username: "thelounge",
-		realname: "The Lounge User",
+		realname: "",
 		join: "#thelounge",
 		leaveMessage: "",
 	},
@@ -289,6 +303,26 @@ module.exports = {
 	//
 	// This value is set to `["sqlite", "text"]` by default.
 	messageStorage: ["sqlite", "text"],
+
+	// ### `storagePolicy`
+
+	// When the sqlite storage is in use, control the maximum storage duration.
+	// A background task will periodically clean up messages older than the limit.
+
+	// The available keys for the `storagePolicy` object are:
+	//
+	// - `enabled`: If this is false, the cleaning task is not running.
+	// - `maxAgeDays`: Maximum age of an entry in days.
+	// - `deletionPolicy`: Controls what types of messages are being deleted.
+	//   Valid options are:
+	//   - `statusOnly`: Only delete message types which are status related (e.g. away, back, join, parts, mode, ctcp...)
+	//     but keep actual messages from nicks. This keeps the DB size down while retaining "precious" messages.
+	//   - `everything`: Delete everything, including messages from irc nicks
+	storagePolicy: {
+		enabled: false,
+		maxAgeDays: 7,
+		deletionPolicy: "statusOnly",
+	},
 
 	// ### `useHexIp`
 	//
@@ -443,9 +477,9 @@ module.exports = {
 			//   - `rootPassword`: Password of The Lounge LDAP system user.
 			rootPassword: "1234",
 
-			//   - `ldapFilter`: it is set to `"(objectClass=person)(memberOf=ou=accounts,dc=example,dc=com)"`
+			//   - `filter`: it is set to `"(&(objectClass=person)(memberOf=ou=accounts,dc=example,dc=com))"`
 			//     by default.
-			filter: "(objectClass=person)(memberOf=ou=accounts,dc=example,dc=com)",
+			filter: "(&(objectClass=person)(memberOf=ou=accounts,dc=example,dc=com))",
 
 			//   - `base`: LDAP search base (search only within this node). It is set
 			//     to `"dc=example,dc=com"` by default.
